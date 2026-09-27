@@ -8,6 +8,7 @@ from app.models.payment import Payment, PaymentStatusEnum
 from app.models.user import User
 from app.api.deps import get_current_user
 import os
+from fastapi import Request
 
 router = APIRouter()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -40,3 +41,41 @@ async def create_checkout_session(order_id: int, current_user: User = Depends(ge
         return {"checkout_url": session.url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, os.getenv("STRIPE_WEBHOOK_SECRET")
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        order_id = int(session['metadata']['order_id'])
+
+        query = select(Order).where(Order.id == order_id)
+        result = await db.execute(query)
+        order = result.scalars().first()
+
+        if order:
+            order.status = OrderStatusEnum.PAID
+
+            payment = Payment(
+                user_id=order.user_id,
+                order_id=order.id,
+                amount=order.total_amount,
+                status=PaymentStatusEnum.SUCCESSFUL,
+                external_payment_id=session['id']
+            )
+            db.add(payment)
+            await db.commit()
+
+    return {"status": "success"}

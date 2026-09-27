@@ -5,6 +5,7 @@ from app.api.cart import router as cart_router
 from app.api.orders import router as orders_router
 from app.api.payments import router as payments_router
 from app.db.database import engine, Base
+from app.models.movie_activity import Favorite, Rating, Comment
 
 app = FastAPI(title="Online Cinema API", version="1.0.0")
 

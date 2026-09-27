@@ -7,6 +7,7 @@ from app.models.cart import Cart, CartItem
 from app.models.user import User
 from app.schemas.cart import CartResponse, CartItemCreate
 from app.api.deps import get_current_user
+from app.models.order import Order, OrderItem, OrderStatusEnum
 
 router = APIRouter()
 
@@ -30,6 +31,15 @@ async def get_cart(current_user: User = Depends(get_current_user), db: AsyncSess
 @router.post("/items", status_code=status.HTTP_201_CREATED)
 async def add_to_cart(item_in: CartItemCreate, current_user: User = Depends(get_current_user),
                       db: AsyncSession = Depends(get_db)):
+    purchased_query = select(OrderItem).join(Order).where(
+        Order.user_id == current_user.id,
+        Order.status == OrderStatusEnum.PAID,
+        OrderItem.movie_id == item_in.movie_id
+    )
+    purchased_result = await db.execute(purchased_query)
+    if purchased_result.scalars().first():
+        raise HTTPException(status_code=400, detail="Movie already purchased")
+
     query = select(Cart).where(Cart.user_id == current_user.id)
     result = await db.execute(query)
     cart = result.scalars().first()
