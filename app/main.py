@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.api.auth import router as auth_router
+from app.api.movies import router as movies_router
 from app.db.database import engine, Base
 
 app = FastAPI(title="Online Cinema API", version="1.0.0")
@@ -10,3 +11,4 @@ async def startup_db():
         await conn.run_sync(Base.metadata.create_all)
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(movies_router, prefix="/movies", tags=["Movies"])
