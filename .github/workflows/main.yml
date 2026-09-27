@@ -1,0 +1,58 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test_and_lint:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: cinema_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Run Black
+        run: poetry run black --check app tests
+
+      - name: Run Flake8
+        run: poetry run flake8 app tests
+
+      - name: Run Mypy
+        run: poetry run mypy app
+
+      - name: Run Pytest
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cinema_test_db
+          SECRET_KEY: testsecret
+          STRIPE_SECRET_KEY: test
+        run: poetry run pytest
