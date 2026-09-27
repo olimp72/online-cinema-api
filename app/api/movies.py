@@ -13,6 +13,8 @@ from app.models.movie_activity import Comment, Favorite, Rating
 from app.models.order import OrderItem
 from app.models.user import User
 from app.schemas.movie import MovieCreate, MovieResponse
+from sqlalchemy import or_
+from typing import Optional
 
 router = APIRouter()
 
@@ -33,9 +35,24 @@ class CommentCreate(BaseModel):
 async def get_movies(
     skip: int = 0,
     limit: int = 10,
+    search: Optional[str] = None,
+    year: Optional[int] = None,
+    min_imdb: Optional[float] = None,
+    genre_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Movie).options(selectinload(Movie.genres)).offset(skip).limit(limit)
+    query = select(Movie).options(selectinload(Movie.genres))
+
+    if search:
+        query = query.where(or_(Movie.name.ilike(f"%{search}%"), Movie.description.ilike(f"%{search}%")))
+    if year:
+        query = query.where(Movie.year == year)
+    if min_imdb is not None:
+        query = query.where(Movie.imdb >= min_imdb)
+    if genre_id:
+        query = query.where(Movie.genres.any(Genre.id == genre_id))
+
+    query = query.offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
 
