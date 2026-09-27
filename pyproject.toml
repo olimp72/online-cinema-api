@@ -20,10 +20,19 @@ dependencies = [
     "python-multipart (>=0.0.32,<0.0.33)",
     "celery (>=5.6.3,<6.0.0)",
     "redis (>=8.1.0,<9.0.0)",
-    "stripe (>=15.6.1,<16.0.0)"
+    "stripe (>=15.6.1,<16.0.0)",
+    "celery-types (>=0.26.0,<0.27.0)",
+    "greenlet (>=3.5.6,<4.0.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
+]
