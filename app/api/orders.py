@@ -10,6 +10,7 @@ from app.models.cart import Cart, CartItem
 from app.models.user import User
 from app.schemas.order import OrderResponse
 from app.api.deps import get_current_user
+from app.api.deps import get_moderator
 
 router = APIRouter()
 
@@ -50,5 +51,12 @@ async def create_order(current_user: User = Depends(get_current_user), db: Async
 async def get_orders(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     query = select(Order).options(selectinload(Order.items).selectinload(OrderItem.movie)).where(
         Order.user_id == current_user.id)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+@router.get("/all", response_model=List[OrderResponse], dependencies=[Depends(get_moderator)])
+async def get_all_orders(skip: int = 0, limit: int = 50, db: AsyncSession = Depends(get_db)):
+    query = select(Order).options(selectinload(Order.items).selectinload(OrderItem.movie)).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()

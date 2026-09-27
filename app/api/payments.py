@@ -9,6 +9,9 @@ from app.models.user import User
 from app.api.deps import get_current_user
 import os
 from fastapi import Request
+from app.api.deps import get_moderator
+from typing import List
+from app.schemas.order import OrderResponse
 
 router = APIRouter()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -79,3 +82,10 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             await db.commit()
 
     return {"status": "success"}
+
+
+@router.get("/all", dependencies=[Depends(get_moderator)])
+async def get_all_payments(skip: int = 0, limit: int = 50, db: AsyncSession = Depends(get_db)):
+    query = select(Payment).offset(skip).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()

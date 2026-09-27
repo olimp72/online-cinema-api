@@ -8,6 +8,11 @@ from app.schemas.user import UserCreate, UserResponse, TokenPair
 from app.models.user import User, UserGroup, UserGroupEnum, ActivationToken
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.tasks.email import send_activation_email
+from app.models.user import PasswordResetToken
+from app.schemas.auth import PasswordResetRequest, PasswordResetConfirm, UserGroupUpdate
+from app.tasks.email import send_reset_password_email
+from app.api.deps import get_admin
+import re
 
 router = APIRouter()
 
@@ -82,3 +87,61 @@ async def login(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     refresh_token = str(uuid.uuid4())
 
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(req: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == req.email, User.is_active == True))
+    user = result.scalars().first()
+
+    if user:
+        token_str = str(uuid.uuid4())
+        reset_token = PasswordResetToken(
+            user_id=user.id,
+            token=token_str,
+            expires_at=datetime.utcnow() + timedelta(hours=1)
+        )
+        db.add(reset_token)
+        await db.commit()
+        send_reset_password_email.delay(user.email, token_str)
+
+    return {"message": "If email exists and is active, a reset link has been sent"}
+
+
+@router.post("/reset-password")
+async def reset_password(req: PasswordResetConfirm, db: AsyncSession = Depends(get_db)):
+    if len(req.new_password) < 8 or not re.search(r"\d", req.new_password):
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long and contain a number")
+
+    result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token == req.token))
+    db_token = result.scalars().first()
+
+    if not db_token or db_token.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+
+    user_result = await db.execute(select(User).where(User.id == db_token.user_id))
+    user = user_result.scalars().first()
+
+    if user:
+        user.hashed_password = get_password_hash(req.new_password)
+        await db.delete(db_token)
+        await db.commit()
+
+    return {"message": "Password updated successfully"}
+
+
+@router.put("/users/{user_id}/group", dependencies=[Depends(get_admin)])
+async def update_user_group(user_id: int, req: UserGroupUpdate, db: AsyncSession = Depends(get_db)):
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    group_result = await db.execute(select(UserGroup).where(UserGroup.name == req.group_name))
+    group = group_result.scalars().first()
+    if not group:
+        raise HTTPException(status_code=400, detail="Invalid group name")
+
+    user.group_id = group.id
+    await db.commit()
+    return {"message": "User group updated"}
