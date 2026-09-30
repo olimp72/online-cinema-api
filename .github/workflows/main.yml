@@ -33,13 +33,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install Poetry
         run: curl -sSL https://install.python-poetry.org | python3 -
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --no-root
 
       - name: Run Black
         run: poetry run black --check app tests
