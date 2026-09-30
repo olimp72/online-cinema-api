@@ -3,6 +3,7 @@ import os
 from email.message import EmailMessage
 from app.core.celery_app import celery_app
 
+
 @celery_app.task
 def send_activation_email(email_to: str, token: str):
     msg = EmailMessage()

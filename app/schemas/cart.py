@@ -3,8 +3,10 @@ from datetime import datetime
 from typing import List
 from app.schemas.movie import MovieResponse
 
+
 class CartItemCreate(BaseModel):
     movie_id: int
+
 
 class CartItemResponse(BaseModel):
     id: int
@@ -13,6 +15,7 @@ class CartItemResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class CartResponse(BaseModel):
     id: int

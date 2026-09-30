@@ -8,14 +8,17 @@ from app.models.user import User
 from app.schemas.cart import CartResponse, CartItemCreate
 from app.api.deps import get_current_user
 from app.models.order import Order, OrderItem, OrderStatusEnum
+from app.models.movie import Movie
 
 router = APIRouter()
 
 
 @router.get("/", response_model=CartResponse)
 async def get_cart(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    query = select(Cart).options(selectinload(Cart.items).selectinload(CartItem.movie)).where(
-        Cart.user_id == current_user.id)
+    query = select(Cart).options(
+        selectinload(Cart.items).selectinload(CartItem.movie)
+    ).where(Cart.user_id == current_user.id)
+
     result = await db.execute(query)
     cart = result.scalars().first()
 
@@ -23,7 +26,9 @@ async def get_cart(current_user: User = Depends(get_current_user), db: AsyncSess
         cart = Cart(user_id=current_user.id)
         db.add(cart)
         await db.commit()
-        await db.refresh(cart)
+
+        result = await db.execute(query)
+        cart = result.scalars().first()
 
     return cart
 
@@ -31,6 +36,11 @@ async def get_cart(current_user: User = Depends(get_current_user), db: AsyncSess
 @router.post("/items", status_code=status.HTTP_201_CREATED)
 async def add_to_cart(item_in: CartItemCreate, current_user: User = Depends(get_current_user),
                       db: AsyncSession = Depends(get_db)):
+    movie_query = select(Movie).where(Movie.id == item_in.movie_id)
+    movie_result = await db.execute(movie_query)
+    if not movie_result.scalars().first():
+        raise HTTPException(status_code=404, detail="Movie not found")
+
     purchased_query = select(OrderItem).join(Order).where(
         Order.user_id == current_user.id,
         Order.status == OrderStatusEnum.PAID,

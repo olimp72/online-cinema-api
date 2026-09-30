@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime, UniqueConstraint, CheckConstraint
-from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
+
 
 class Favorite(Base):
     __tablename__ = "favorites"
@@ -11,6 +11,7 @@ class Favorite(Base):
     movie_id = Column(Integer, ForeignKey("movies.id"), nullable=False)
 
     __table_args__ = (UniqueConstraint("user_id", "movie_id", name="uq_user_favorite_movie"),)
+
 
 class Rating(Base):
     __tablename__ = "ratings"
@@ -24,6 +25,7 @@ class Rating(Base):
         UniqueConstraint("user_id", "movie_id", name="uq_user_rating_movie"),
         CheckConstraint("score >= 1 AND score <= 10", name="chk_rating_score")
     )
+
 
 class Comment(Base):
     __tablename__ = "comments"

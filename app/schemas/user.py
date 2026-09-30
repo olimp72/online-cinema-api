@@ -1,11 +1,11 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
 from datetime import datetime
-from app.models.user import GenderEnum, UserGroupEnum
+
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+
 
 class UserResponse(BaseModel):
     id: int
@@ -15,6 +15,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class TokenPair(BaseModel):
     access_token: str

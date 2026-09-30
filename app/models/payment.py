@@ -4,10 +4,12 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
 
+
 class PaymentStatusEnum(str, enum.Enum):
     SUCCESSFUL = "successful"
     CANCELED = "canceled"
     REFUNDED = "refunded"
+
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -23,6 +25,7 @@ class Payment(Base):
     items = relationship("PaymentItem", back_populates="payment", cascade="all, delete-orphan")
     user = relationship("User", backref="payments")
     order = relationship("Order")
+
 
 class PaymentItem(Base):
     __tablename__ = "payment_items"

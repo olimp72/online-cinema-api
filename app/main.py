@@ -11,6 +11,7 @@ from app.db.database import engine, Base
 
 security = HTTPBasic()
 
+
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, "admin")
     correct_password = secrets.compare_digest(credentials.password, "admin")
@@ -22,16 +23,20 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
         )
     return credentials.username
 
+
 app = FastAPI(title="Online Cinema API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
+
 
 @app.on_event("startup")
 async def startup_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)  # type: ignore
 
+
 @app.get("/docs", include_in_schema=False)
 async def get_documentation(username: str = Depends(get_current_username)):
     return get_swagger_ui_html(openapi_url="/openapi.json", title="API Documentation")
+
 
 @app.get("/openapi.json", include_in_schema=False)
 async def openapi(username: str = Depends(get_current_username)):

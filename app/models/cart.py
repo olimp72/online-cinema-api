@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
 
+
 class Cart(Base):
     __tablename__ = "carts"
 
@@ -11,6 +12,7 @@ class Cart(Base):
 
     items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
     user = relationship("User", backref="cart")
+
 
 class CartItem(Base):
     __tablename__ = "cart_items"

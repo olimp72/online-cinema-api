@@ -5,6 +5,7 @@ from decimal import Decimal
 from app.models.order import OrderStatusEnum
 from app.schemas.movie import MovieResponse
 
+
 class OrderItemResponse(BaseModel):
     id: int
     movie: MovieResponse
@@ -12,6 +13,7 @@ class OrderItemResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class OrderResponse(BaseModel):
     id: int

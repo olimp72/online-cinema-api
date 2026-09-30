@@ -31,10 +31,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         raise credentials_exception
     return user
 
+
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
 
 def require_roles(roles: list[UserGroupEnum]):
     async def role_checker(current_user: User = Depends(get_current_active_user), db: AsyncSession = Depends(get_db)):
@@ -45,5 +47,6 @@ def require_roles(roles: list[UserGroupEnum]):
         return current_user
     return role_checker
 
-get_moderator = Depends(require_roles([UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN]))
-get_admin = Depends(require_roles([UserGroupEnum.ADMIN]))
+
+get_moderator = require_roles([UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN])
+get_admin = require_roles([UserGroupEnum.ADMIN])

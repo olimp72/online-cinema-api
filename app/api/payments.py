@@ -1,5 +1,5 @@
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.database import get_db
@@ -10,14 +10,16 @@ from app.api.deps import get_current_user
 import os
 from fastapi import Request
 from app.api.deps import get_moderator
-from typing import List
-from app.schemas.order import OrderResponse
 
 router = APIRouter()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
+
 @router.post("/create-checkout-session/{order_id}")
-async def create_checkout_session(order_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def create_checkout_session(
+        order_id: int, current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
+):
     query = select(Order).where(Order.id == order_id, Order.user_id == current_user.id)
     result = await db.execute(query)
     order = result.scalars().first()

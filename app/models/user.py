@@ -4,14 +4,17 @@ from datetime import datetime
 import enum
 from app.db.database import Base
 
+
 class UserGroupEnum(str, enum.Enum):
     USER = "USER"
     MODERATOR = "MODERATOR"
     ADMIN = "ADMIN"
 
+
 class GenderEnum(str, enum.Enum):
     MAN = "MAN"
     WOMAN = "WOMAN"
+
 
 class UserGroup(Base):
     __tablename__ = "user_groups"
@@ -20,6 +23,7 @@ class UserGroup(Base):
     name = Column(Enum(UserGroupEnum), unique=True, nullable=False)
 
     users = relationship("User", back_populates="group")
+
 
 class User(Base):
     __tablename__ = "users"
@@ -38,6 +42,7 @@ class User(Base):
     reset_tokens = relationship("PasswordResetToken", back_populates="user")
     refresh_tokens = relationship("RefreshToken", back_populates="user")
 
+
 class UserProfile(Base):
     __tablename__ = "user_profiles"
 
@@ -52,6 +57,7 @@ class UserProfile(Base):
 
     user = relationship("User", back_populates="profile")
 
+
 class ActivationToken(Base):
     __tablename__ = "activation_tokens"
 
@@ -62,6 +68,7 @@ class ActivationToken(Base):
 
     user = relationship("User", back_populates="activation_tokens")
 
+
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
@@ -71,6 +78,7 @@ class PasswordResetToken(Base):
     expires_at = Column(DateTime)
 
     user = relationship("User", back_populates="reset_tokens")
+
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"

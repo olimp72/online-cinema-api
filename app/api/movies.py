@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import get_current_active_user, get_moderator
 from app.db.database import get_db
 from app.models.movie import Genre, Movie
-from app.models.movie_activity import Comment, Favorite, Rating
+from app.models.movie_activity import Favorite, Rating
 from app.models.order import OrderItem
 from app.models.user import User
 from app.schemas.movie import MovieCreate, MovieResponse

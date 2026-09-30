@@ -4,10 +4,12 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
 
+
 class OrderStatusEnum(str, enum.Enum):
     PENDING = "pending"
     PAID = "paid"
     CANCELED = "canceled"
+
 
 class Order(Base):
     __tablename__ = "orders"
@@ -20,6 +22,7 @@ class Order(Base):
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     user = relationship("User", backref="orders")
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"

@@ -91,7 +91,7 @@ async def login(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/forgot-password")
 async def forgot_password(req: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == req.email, User.is_active == True))
+    result = await db.execute(select(User).where(User.email == req.email, User.is_active))
     user = result.scalars().first()
 
     if user:

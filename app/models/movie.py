@@ -24,6 +24,7 @@ movie_stars = Table(
     Column("star_id", Integer, ForeignKey("stars.id"), primary_key=True)
 )
 
+
 class Genre(Base):
     __tablename__ = "genres"
 
@@ -31,6 +32,7 @@ class Genre(Base):
     name = Column(String, unique=True, nullable=False)
 
     movies = relationship("Movie", secondary=movie_genres, back_populates="genres")
+
 
 class Star(Base):
     __tablename__ = "stars"
@@ -40,6 +42,7 @@ class Star(Base):
 
     movies = relationship("Movie", secondary=movie_stars, back_populates="stars")
 
+
 class Director(Base):
     __tablename__ = "directors"
 
@@ -48,6 +51,7 @@ class Director(Base):
 
     movies = relationship("Movie", secondary=movie_directors, back_populates="directors")
 
+
 class Certification(Base):
     __tablename__ = "certifications"
 
@@ -55,6 +59,7 @@ class Certification(Base):
     name = Column(String, unique=True, nullable=False)
 
     movies = relationship("Movie", back_populates="certification")
+
 
 class Movie(Base):
     __tablename__ = "movies"
