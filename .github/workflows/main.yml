@@ -49,4 +49,5 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/cinema_test_db
           SECRET_KEY: testsecret
           STRIPE_SECRET_KEY: test
+          STRIPE_WEBHOOK_SECRET: test
         run: poetry run pytest
