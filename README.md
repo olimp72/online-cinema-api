@@ -97,8 +97,11 @@ poetry run flake8
 ```
 
 📄 Документація API
-Після запуску застосунку ви можете ознайомитися з інтерактивною документацією Swagger UI та ReDoc:
+Доступ до інтерактивної документації Swagger UI та ReDoc захищено за допомогою HTTP Basic Authentication. 
+Використайте такі облікові дані для входу:
+* **Логін (Username):** `admin`
+* **Пароль (Password):** `admin`
 
-Swagger UI: http://127.0.0.1:8000/docs
-
-ReDoc: http://127.0.0.1:8000/redoc
+Посилання на документацію:
+* **Swagger UI:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **ReDoc:** [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
