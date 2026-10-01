@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 from app.db.database import get_db
 from app.models.cart import Cart, CartItem
 from app.models.user import User
@@ -25,7 +26,10 @@ async def get_cart(current_user: User = Depends(get_current_user), db: AsyncSess
     if not cart:
         cart = Cart(user_id=current_user.id)
         db.add(cart)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
 
         result = await db.execute(query)
         cart = result.scalars().first()
@@ -57,7 +61,12 @@ async def add_to_cart(item_in: CartItemCreate, current_user: User = Depends(get_
     if not cart:
         cart = Cart(user_id=current_user.id)
         db.add(cart)
-        await db.flush()
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            result = await db.execute(query)
+            cart = result.scalars().first()
 
     new_item = CartItem(cart_id=cart.id, movie_id=item_in.movie_id)
     db.add(new_item)
