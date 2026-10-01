@@ -1,4 +1,3 @@
-import os
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,9 +7,10 @@ from app.models.order import Order, OrderStatusEnum
 from app.models.payment import Payment, PaymentStatusEnum
 from app.models.user import User
 from app.api.deps import get_current_user, get_moderator
+from app.core.config import settings
 
 router = APIRouter()
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 @router.post("/create-checkout-session/{order_id}")
@@ -54,7 +54,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, os.getenv("STRIPE_WEBHOOK_SECRET")
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
