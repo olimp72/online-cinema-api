@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    FRONTEND_URL: str = "http://localhost:8000"
+
     # Stripe
     STRIPE_SECRET_KEY: str
     STRIPE_WEBHOOK_SECRET: str

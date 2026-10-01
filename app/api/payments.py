@@ -27,6 +27,10 @@ async def create_checkout_session(
         raise HTTPException(status_code=400, detail="Invalid order or order already paid")
 
     try:
+        # Використовуємо налаштування з settings замість хардкоду localhost
+        success_url = f"{settings.FRONTEND_URL}/success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{settings.FRONTEND_URL}/cancel"
+
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -38,8 +42,8 @@ async def create_checkout_session(
                 'quantity': 1,
             }],
             mode='payment',
-            success_url='http://localhost:8000/success?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url='http://localhost:8000/cancel',
+            success_url=success_url,
+            cancel_url=cancel_url,
             metadata={'order_id': order.id, 'user_id': current_user.id}
         )
         return {"checkout_url": session.url}
