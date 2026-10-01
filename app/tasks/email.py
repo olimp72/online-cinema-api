@@ -1,12 +1,15 @@
 import smtplib
 import os
+import logging
 from email.message import EmailMessage
 from app.core.celery_app import celery_app
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 
-@celery_app.task
-def send_activation_email(email_to: str, token: str):
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def send_activation_email(self, email_to: str, token: str):
     activation_url = f"{settings.FRONTEND_URL}/auth/activate/{token}"
     msg = EmailMessage()
     msg.set_content(f"Your activation link: {activation_url}")
@@ -25,14 +28,16 @@ def send_activation_email(email_to: str, token: str):
                 server.starttls()
                 server.login(smtp_user, smtp_pass)
                 server.send_message(msg)
+            logger.info(f"Activation email successfully sent to {email_to}")
         except Exception as e:
-            print(f"Failed to send email via SMTP: {e}")
+            logger.error(f"Failed to send activation email to {email_to}: {e}")
+            raise self.retry(exc=e)
     else:
-        print(f"MOCK EMAIL to {email_to}: {activation_url}")
+        logger.info(f"MOCK EMAIL to {email_to}: {activation_url}")
 
 
-@celery_app.task
-def send_reset_password_email(email_to: str, token: str):
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def send_reset_password_email(self, email_to: str, token: str):
     reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={token}"
     msg = EmailMessage()
     msg.set_content(f"Your password reset link: {reset_url}")
@@ -51,7 +56,9 @@ def send_reset_password_email(email_to: str, token: str):
                 server.starttls()
                 server.login(smtp_user, smtp_pass)
                 server.send_message(msg)
+            logger.info(f"Password reset email successfully sent to {email_to}")
         except Exception as e:
-            print(f"Failed to send email via SMTP: {e}")
+            logger.error(f"Failed to send password reset email to {email_to}: {e}")
+            raise self.retry(exc=e)
     else:
-        print(f"MOCK EMAIL to {email_to}: {reset_url}")
+        logger.info(f"MOCK EMAIL to {email_to}: {reset_url}")
