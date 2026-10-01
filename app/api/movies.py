@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_current_active_user, get_moderator
 from app.db.database import get_db
@@ -88,7 +89,7 @@ async def create_movie(
     try:
         await db.commit()
         await db.refresh(new_movie)
-    except Exception:
+    except IntegrityError:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,11 +105,18 @@ async def add_favorite(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db),
 ):
+    movie_result = await db.execute(select(Movie).where(Movie.id == movie_id))
+    if not movie_result.scalars().first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found",
+        )
+
     new_fav = Favorite(user_id=current_user.id, movie_id=movie_id)
     db.add(new_fav)
     try:
         await db.commit()
-    except Exception:
+    except IntegrityError:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -130,6 +138,13 @@ async def rate_movie(
             detail="Score must be between 1 and 10",
         )
 
+    movie_result = await db.execute(select(Movie).where(Movie.id == movie_id))
+    if not movie_result.scalars().first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found",
+        )
+
     new_rating = Rating(
         user_id=current_user.id,
         movie_id=movie_id,
@@ -138,7 +153,7 @@ async def rate_movie(
     db.add(new_rating)
     try:
         await db.commit()
-    except Exception:
+    except IntegrityError:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
