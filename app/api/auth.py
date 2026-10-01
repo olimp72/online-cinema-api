@@ -1,5 +1,5 @@
 import uuid
-import re
+import hashlib
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,9 +41,11 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.flush()
 
     token_str = str(uuid.uuid4())
+    token_hash = hashlib.sha256(token_str.encode()).hexdigest()
+
     activation_token = ActivationToken(
         user_id=new_user.id,
-        token=token_str,
+        token=token_hash,
         expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
     )
     db.add(activation_token)
@@ -57,7 +59,8 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.get("/activate/{token}")
 async def activate_account(token: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(ActivationToken).where(ActivationToken.token == token))
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    result = await db.execute(select(ActivationToken).where(ActivationToken.token == token_hash))
     db_token = result.scalars().first()
 
     if not db_token:
@@ -132,9 +135,11 @@ async def forgot_password(req: PasswordResetRequest, db: AsyncSession = Depends(
             await db.delete(existing_token)
 
         token_str = str(uuid.uuid4())
+        token_hash = hashlib.sha256(token_str.encode()).hexdigest()
+
         reset_token = PasswordResetToken(
             user_id=user.id,
-            token=token_str,
+            token=token_hash,
             expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
         )
         db.add(reset_token)
@@ -146,10 +151,8 @@ async def forgot_password(req: PasswordResetRequest, db: AsyncSession = Depends(
 
 @router.post("/reset-password")
 async def reset_password(req: PasswordResetConfirm, db: AsyncSession = Depends(get_db)):
-    if len(req.new_password) < 8 or not re.search(r"\d", req.new_password):
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long and contain a number")
-
-    result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token == req.token))
+    token_hash = hashlib.sha256(req.token.encode()).hexdigest()
+    result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token == token_hash))
     db_token = result.scalars().first()
 
     if not db_token or db_token.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
