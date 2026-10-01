@@ -118,6 +118,13 @@ async def forgot_password(req: PasswordResetRequest, db: AsyncSession = Depends(
     user = result.scalars().first()
 
     if user:
+        existing_token_result = await db.execute(
+            select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
+        )
+        existing_token = existing_token_result.scalars().first()
+        if existing_token:
+            await db.delete(existing_token)
+
         token_str = str(uuid.uuid4())
         reset_token = PasswordResetToken(
             user_id=user.id,
