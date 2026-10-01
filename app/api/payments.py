@@ -1,15 +1,13 @@
+import os
 import stripe
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.database import get_db
 from app.models.order import Order, OrderStatusEnum
 from app.models.payment import Payment, PaymentStatusEnum
 from app.models.user import User
-from app.api.deps import get_current_user
-import os
-from fastapi import Request
-from app.api.deps import get_moderator
+from app.api.deps import get_current_user, get_moderator
 
 router = APIRouter()
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -17,8 +15,9 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 @router.post("/create-checkout-session/{order_id}")
 async def create_checkout_session(
-        order_id: int, current_user: User = Depends(get_current_user),
-        db: AsyncSession = Depends(get_db)
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     query = select(Order).where(Order.id == order_id, Order.user_id == current_user.id)
     result = await db.execute(query)
@@ -64,6 +63,14 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
+        session_id = session['id']
+
+        payment_check = await db.execute(
+            select(Payment).where(Payment.external_payment_id == session_id)
+        )
+        if payment_check.scalars().first():
+            return {"status": "success"}
+
         order_id = int(session['metadata']['order_id'])
 
         query = select(Order).where(Order.id == order_id)
@@ -78,7 +85,7 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 order_id=order.id,
                 amount=order.total_amount,
                 status=PaymentStatusEnum.SUCCESSFUL,
-                external_payment_id=session['id']
+                external_payment_id=session_id
             )
             db.add(payment)
             await db.commit()
