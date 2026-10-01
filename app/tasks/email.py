@@ -2,12 +2,14 @@ import smtplib
 import os
 from email.message import EmailMessage
 from app.core.celery_app import celery_app
+from app.core.config import settings
 
 
 @celery_app.task
 def send_activation_email(email_to: str, token: str):
+    activation_url = f"{settings.FRONTEND_URL}/auth/activate/{token}"
     msg = EmailMessage()
-    msg.set_content(f"Your activation link: http://localhost:8000/auth/activate/{token}")
+    msg.set_content(f"Your activation link: {activation_url}")
     msg["Subject"] = "Account Activation"
     msg["From"] = os.getenv("SMTP_USER", "noreply@online-cinema.local")
     msg["To"] = email_to
@@ -26,13 +28,14 @@ def send_activation_email(email_to: str, token: str):
         except Exception as e:
             print(f"Failed to send email via SMTP: {e}")
     else:
-        print(f"MOCK EMAIL to {email_to}: http://localhost:8000/auth/activate/{token}")
+        print(f"MOCK EMAIL to {email_to}: {activation_url}")
 
 
 @celery_app.task
 def send_reset_password_email(email_to: str, token: str):
+    reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={token}"
     msg = EmailMessage()
-    msg.set_content(f"Your password reset token: {token}")
+    msg.set_content(f"Your password reset link: {reset_url}")
     msg["Subject"] = "Password Reset"
     msg["From"] = os.getenv("SMTP_USER", "noreply@online-cinema.local")
     msg["To"] = email_to
@@ -51,4 +54,4 @@ def send_reset_password_email(email_to: str, token: str):
         except Exception as e:
             print(f"Failed to send email via SMTP: {e}")
     else:
-        print(f"MOCK EMAIL to {email_to}: Token - {token}")
+        print(f"MOCK EMAIL to {email_to}: {reset_url}")
