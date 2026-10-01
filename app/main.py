@@ -8,7 +8,6 @@ from app.api.movies import router as movies_router
 from app.api.cart import router as cart_router
 from app.api.orders import router as orders_router
 from app.api.payments import router as payments_router
-from app.db.database import engine, Base
 
 security = HTTPBasic()
 
@@ -30,12 +29,6 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
 
 
 app = FastAPI(title="Online Cinema API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
-
-
-@app.on_event("startup")
-async def startup_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)  # type: ignore
 
 
 @app.get("/docs", include_in_schema=False)
