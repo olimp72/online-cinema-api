@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -33,8 +33,8 @@ class CommentCreate(BaseModel):
 
 @router.get("/", response_model=List[MovieResponse])
 async def get_movies(
-    skip: int = 0,
-    limit: int = 10,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     search: Optional[str] = None,
     year: Optional[int] = None,
     min_imdb: Optional[float] = None,

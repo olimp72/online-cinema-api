@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -70,7 +70,11 @@ async def get_orders(current_user: User = Depends(get_current_user), db: AsyncSe
 
 
 @router.get("/all", response_model=List[OrderResponse], dependencies=[Depends(get_moderator)])
-async def get_all_orders(skip: int = 0, limit: int = 50, db: AsyncSession = Depends(get_db)):
+async def get_all_orders(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
     query = select(Order).options(selectinload(Order.items).selectinload(OrderItem.movie)).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
