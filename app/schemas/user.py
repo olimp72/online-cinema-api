@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 
 class UserCreate(BaseModel):
@@ -13,11 +13,14 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str

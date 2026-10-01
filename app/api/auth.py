@@ -1,18 +1,17 @@
 import uuid
-from datetime import datetime, timedelta
+import re
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from app.db.database import get_db
-from app.schemas.user import UserCreate, UserResponse, TokenPair
-from app.models.user import User, UserGroup, UserGroupEnum, ActivationToken
+from app.schemas.user import UserCreate, UserResponse, TokenPair, TokenRefreshRequest
+from app.models.user import User, UserGroup, UserGroupEnum, ActivationToken, PasswordResetToken, RefreshToken
 from app.core.security import get_password_hash, verify_password, create_access_token
-from app.tasks.email import send_activation_email
-from app.models.user import PasswordResetToken
+from app.tasks.email import send_activation_email, send_reset_password_email
 from app.schemas.auth import PasswordResetRequest, PasswordResetConfirm, UserGroupUpdate
-from app.tasks.email import send_reset_password_email
 from app.api.deps import get_admin
-import re
 
 router = APIRouter()
 
@@ -39,7 +38,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     activation_token = ActivationToken(
         user_id=new_user.id,
         token=token_str,
-        expires_at=datetime.utcnow() + timedelta(hours=24)
+        expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
     )
     db.add(activation_token)
     await db.commit()
@@ -58,7 +57,7 @@ async def activate_account(token: str, db: AsyncSession = Depends(get_db)):
     if not db_token:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    if db_token.expires_at < datetime.utcnow():
+    if db_token.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
         raise HTTPException(status_code=400, detail="Token expired")
 
     user_result = await db.execute(select(User).where(User.id == db_token.user_id))
@@ -86,7 +85,31 @@ async def login(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = str(uuid.uuid4())
 
+    db_refresh_token = RefreshToken(
+        token=refresh_token,
+        user_id=user.id,
+        expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=7)
+    )
+    db.add(db_refresh_token)
+    await db.commit()
+
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+@router.post("/refresh", response_model=TokenPair)
+async def refresh_token(req: TokenRefreshRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token == req.refresh_token))
+    db_token = result.scalars().first()
+
+    if not db_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    if db_token.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+
+    access_token = create_access_token(data={"sub": str(db_token.user_id)})
+
+    return {"access_token": access_token, "refresh_token": req.refresh_token, "token_type": "bearer"}
 
 
 @router.post("/forgot-password")
@@ -99,7 +122,7 @@ async def forgot_password(req: PasswordResetRequest, db: AsyncSession = Depends(
         reset_token = PasswordResetToken(
             user_id=user.id,
             token=token_str,
-            expires_at=datetime.utcnow() + timedelta(hours=1)
+            expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
         )
         db.add(reset_token)
         await db.commit()
@@ -116,7 +139,7 @@ async def reset_password(req: PasswordResetConfirm, db: AsyncSession = Depends(g
     result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token == req.token))
     db_token = result.scalars().first()
 
-    if not db_token or db_token.expires_at < datetime.utcnow():
+    if not db_token or db_token.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
         raise HTTPException(status_code=400, detail="Invalid or expired token")
 
     user_result = await db.execute(select(User).where(User.id == db_token.user_id))
