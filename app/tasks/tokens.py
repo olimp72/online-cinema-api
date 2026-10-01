@@ -3,13 +3,16 @@ from datetime import datetime
 from sqlalchemy import delete
 from app.core.celery_app import celery_app
 from app.db.database import AsyncSessionLocal
-from app.models.user import ActivationToken
+from app.models.user import ActivationToken, PasswordResetToken
 
 
 async def _delete_expired_tokens():
     async with AsyncSessionLocal() as session:
         await session.execute(
             delete(ActivationToken).where(ActivationToken.expires_at < datetime.utcnow())
+        )
+        await session.execute(
+            delete(PasswordResetToken).where(PasswordResetToken.expires_at < datetime.utcnow())
         )
         await session.commit()
 
