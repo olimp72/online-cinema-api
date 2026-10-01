@@ -25,10 +25,16 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     group_result = await db.execute(select(UserGroup).where(UserGroup.name == UserGroupEnum.USER))
     group = group_result.scalars().first()
 
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Default user group not found in database"
+        )
+
     new_user = User(
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
-        group_id=group.id if group else None,
+        group_id=group.id,
         is_active=False
     )
     db.add(new_user)
