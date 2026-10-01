@@ -1,5 +1,5 @@
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.database import get_db
@@ -43,8 +43,16 @@ async def create_checkout_session(
             metadata={'order_id': order.id, 'user_id': current_user.id}
         )
         return {"checkout_url": session.url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except stripe.error.StripeError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Payment gateway error. Please try again later."
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred."
+        )
 
 
 @router.post("/webhook")
