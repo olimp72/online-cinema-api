@@ -60,4 +60,6 @@ jobs:
           SECRET_KEY: testsecret
           STRIPE_SECRET_KEY: test
           STRIPE_WEBHOOK_SECRET: test
+          SWAGGER_USER: admin
+          SWAGGER_PASSWORD: testpassword
         run: poetry run pytest

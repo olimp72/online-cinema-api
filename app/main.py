@@ -1,3 +1,4 @@
+import os
 import secrets
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -13,8 +14,12 @@ security = HTTPBasic()
 
 
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, "admin")
-    correct_password = secrets.compare_digest(credentials.password, "admin")
+    expected_user = os.getenv("SWAGGER_USER", "admin")
+    expected_password = os.getenv("SWAGGER_PASSWORD", "admin")
+
+    correct_username = secrets.compare_digest(credentials.username, expected_user)
+    correct_password = secrets.compare_digest(credentials.password, expected_password)
+
     if not (correct_username and correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -41,6 +46,7 @@ async def get_documentation(username: str = Depends(get_current_username)):
 @app.get("/openapi.json", include_in_schema=False)
 async def openapi(username: str = Depends(get_current_username)):
     return app.openapi()
+
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(movies_router, prefix="/movies", tags=["Movies"])
