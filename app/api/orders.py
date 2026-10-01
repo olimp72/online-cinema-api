@@ -17,8 +17,12 @@ router = APIRouter()
 
 @router.post("/", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
 async def create_order(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    cart_query = select(Cart).options(selectinload(Cart.items).selectinload(CartItem.movie)).where(
-        Cart.user_id == current_user.id)
+    cart_query = (
+        select(Cart)
+        .options(selectinload(Cart.items).selectinload(CartItem.movie))
+        .where(Cart.user_id == current_user.id)
+        .with_for_update()
+    )
     cart_result = await db.execute(cart_query)
     cart = cart_result.scalars().first()
 
