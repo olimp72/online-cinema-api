@@ -44,13 +44,14 @@ Digital platform API that allows users to browse, search, purchase, and stream m
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/olimp72/online-cinema-fastapi.git](https://github.com/olimp72/online-cinema-fastapi.git)
-cd online-cinema-fastapi
+git clone [https://github.com/olimp72/online-cinema-api.git](https://github.com/olimp72/online-cinema-api.git)
+cd online-cinema-api
 ```
 
 ### 2. Configure environment variables
 Create a .env file in the root directory based on your configuration:
 
+Фрагмент кода
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=password
 POSTGRES_SERVER=localhost
@@ -63,45 +64,47 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 REDIS_URL=redis://localhost:6379/0
 STRIPE_API_KEY=your_stripe_secret_key
 
-### 3. Встановлення залежностей через Poetry
-```bash
+### 3. Install Dependencies with Poetry
+```Bash
 poetry install
 ```
 
-### 4. Запуск міграцій бази даних
-```bash
+### 4. Run Database Migrations
+```Bash
 poetry run alembic upgrade head
 ```
 
-🏃 Запуск застосунку
-Варіант А: Локально через Uvicorn
-```bash
+🏃 Running the Application
+
+Option A: Locally via Uvicorn
+```Bash
 poetry run uvicorn app.main:app --reload
 ```
-
-Варіант Б: Через Docker Compose (Рекомендовано)
-Для запуску застосунку разом із PostgreSQL, Redis та worker'ами Celery:
-```bash
+Option B: Via Docker Compose (Recommended)
+To run the application along with PostgreSQL, Redis, and Celery workers:
+```Bash
 docker-compose up --build -d
 ```
+🧪 Testing & Code Quality
+To run unit and integration tests using Pytest:
 
-🧪 Запуск тестів та перевірка коду
-Для запуску юніт- та інтеграційних тестів за допомогою Pytest:
-```bash
+```Bash
 poetry run pytest
 ```
-
-Для перевірки дотримання стилю коду (Flake8):
-```bash
+To check code style compliance (Flake8):
+```Bash
 poetry run flake8
 ```
+📄 API Documentation
+Access to the interactive Swagger UI and ReDoc documentation is protected via HTTP Basic Authentication.
+Use the following credentials to log in:
 
-📄 Документація API
-Доступ до інтерактивної документації Swagger UI та ReDoc захищено за допомогою HTTP Basic Authentication. 
-Використайте такі облікові дані для входу:
-* **Логін (Username):** `admin`
-* **Пароль (Password):** `admin`
+Username: admin
 
-Посилання на документацію:
-* **Swagger UI:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-* **ReDoc:** [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+Password: admin
+
+Documentation endpoints:
+
+Swagger UI: http://127.0.0.1:8000/docs
+
+ReDoc: http://127.0.0.1:8000/redoc
