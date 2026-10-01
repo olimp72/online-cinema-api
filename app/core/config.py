@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = "http://localhost:8000"
 
+    DEBUG: bool = False
+
     # Stripe
     STRIPE_SECRET_KEY: str
     STRIPE_WEBHOOK_SECRET: str
