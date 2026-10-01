@@ -1,10 +1,11 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy import or_
 
 from app.api.deps import get_current_active_user, get_moderator
 from app.db.database import get_db
@@ -13,8 +14,6 @@ from app.models.movie_activity import Favorite, Rating
 from app.models.order import OrderItem
 from app.models.user import User
 from app.schemas.movie import MovieCreate, MovieResponse
-from sqlalchemy import or_
-from typing import Optional
 
 router = APIRouter()
 
@@ -57,7 +56,12 @@ async def get_movies(
     return result.scalars().all()
 
 
-@router.post("/", response_model=MovieResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=MovieResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_moderator)]
+)
 async def create_movie(
     movie_in: MovieCreate,
     db: AsyncSession = Depends(get_db)
