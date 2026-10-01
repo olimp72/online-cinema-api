@@ -72,9 +72,9 @@ async def add_to_cart(item_in: CartItemCreate, current_user: User = Depends(get_
     db.add(new_item)
     try:
         await db.commit()
-    except Exception:
+    except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Movie already in cart or does not exist")
+        raise HTTPException(status_code=400, detail="Movie already in cart")
     return {"message": "Item added to cart"}
 
 
