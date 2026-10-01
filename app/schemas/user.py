@@ -1,10 +1,18 @@
+import re
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8 or not re.search(r"\d", value):
+            raise ValueError("Password must be at least 8 characters long and contain a number")
+        return value
 
 
 class UserResponse(BaseModel):
