@@ -71,24 +71,40 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         if payment_check.scalars().first():
             return {"status": "success"}
 
-        order_id = int(session['metadata']['order_id'])
+        if session.get('payment_status') != 'paid':
+            raise HTTPException(status_code=400, detail="Payment not completed")
+
+        if session.get('currency', '').lower() != 'usd':
+            raise HTTPException(status_code=400, detail="Invalid currency")
+
+        metadata = session.get('metadata', {})
+        if not metadata or 'order_id' not in metadata:
+            raise HTTPException(status_code=400, detail="Missing order_id in metadata")
+
+        order_id = int(metadata['order_id'])
 
         query = select(Order).where(Order.id == order_id)
         result = await db.execute(query)
         order = result.scalars().first()
 
-        if order:
-            order.status = OrderStatusEnum.PAID
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
 
-            payment = Payment(
-                user_id=order.user_id,
-                order_id=order.id,
-                amount=order.total_amount,
-                status=PaymentStatusEnum.SUCCESSFUL,
-                external_payment_id=session_id
-            )
-            db.add(payment)
-            await db.commit()
+        expected_amount = int(order.total_amount * 100)
+        if session.get('amount_total') != expected_amount:
+            raise HTTPException(status_code=400, detail="Payment amount mismatch")
+
+        order.status = OrderStatusEnum.PAID
+
+        payment = Payment(
+            user_id=order.user_id,
+            order_id=order.id,
+            amount=order.total_amount,
+            status=PaymentStatusEnum.SUCCESSFUL,
+            external_payment_id=session_id
+        )
+        db.add(payment)
+        await db.commit()
 
     return {"status": "success"}
 
