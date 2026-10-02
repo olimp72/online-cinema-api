@@ -99,7 +99,7 @@ poetry run flake8
 ```
 
 ## 📄 API Documentation
-Access to the interactive Swagger UI and ReDoc documentation is protected via HTTP Basic Authentication.
+Access to the interactive Swagger UI documentation is protected via HTTP Basic Authentication.
 Use the credentials configured in your environment variables (SWAGGER_USER and SWAGGER_PASSWORD) to log in.
 
 Documentation endpoints:
