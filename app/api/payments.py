@@ -1,5 +1,5 @@
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
@@ -143,7 +143,11 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/all", dependencies=[Depends(get_moderator)])
-async def get_all_payments(skip: int = 0, limit: int = 50, db: AsyncSession = Depends(get_db)):
+async def get_all_payments(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(50, ge=1, le=100),
+        db: AsyncSession = Depends(get_db)
+):
     query = select(Payment).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
