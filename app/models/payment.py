@@ -20,7 +20,7 @@ class Payment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     status = Column(Enum(PaymentStatusEnum), default=PaymentStatusEnum.SUCCESSFUL, nullable=False)
     amount = Column(DECIMAL(10, 2), nullable=False)
-    external_payment_id = Column(String, nullable=True)
+    external_payment_id = Column(String, nullable=True, unique=True)
 
     items = relationship("PaymentItem", back_populates="payment", cascade="all, delete-orphan")
     user = relationship("User", backref="payments")

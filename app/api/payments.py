@@ -2,6 +2,7 @@ import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
 from app.db.database import get_db
 from app.models.order import Order, OrderStatusEnum
 from app.models.payment import Payment, PaymentStatusEnum
@@ -15,9 +16,9 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 @router.post("/create-checkout-session/{order_id}")
 async def create_checkout_session(
-    order_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+        order_id: int,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db)
 ):
     query = select(Order).where(Order.id == order_id, Order.user_id == current_user.id)
     result = await db.execute(query)
@@ -27,7 +28,6 @@ async def create_checkout_session(
         raise HTTPException(status_code=400, detail="Invalid order or order already paid")
 
     try:
-        # Використовуємо налаштування з settings замість хардкоду localhost
         success_url = f"{settings.FRONTEND_URL}/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{settings.FRONTEND_URL}/cancel"
 
@@ -116,7 +116,12 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
             external_payment_id=session_id
         )
         db.add(payment)
-        await db.commit()
+
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            return {"status": "success"}
 
     return {"status": "success"}
 
