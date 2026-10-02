@@ -18,7 +18,7 @@ Digital platform API that allows users to browse, search, purchase, and stream m
 
 ---
 
-## 🛠️ Project Architecture & Features
+## 🛠️️ Project Architecture & Features
 
 1. **User Management & RBAC:**
    * Registration with email activation (24-hour token expiration & Celery cleanup task).
@@ -50,8 +50,6 @@ cd online-cinema-api
 
 ### 2. Configure environment variables
 Create a .env file in the root directory based on your configuration:
-
-Фрагмент кода
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=password
 POSTGRES_SERVER=localhost
@@ -62,46 +60,47 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 REDIS_URL=redis://localhost:6379/0
-STRIPE_API_KEY=your_stripe_secret_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+SWAGGER_USER=your_secure_username
+SWAGGER_PASSWORD=your_secure_password
 
 ### 3. Install Dependencies with Poetry
-```Bash
+```bash
 poetry install
 ```
 
 ### 4. Run Database Migrations
-```Bash
+```bash
 poetry run alembic upgrade head
 ```
 
-🏃 Running the Application
-
+## 🏃 Running the Application
 Option A: Locally via Uvicorn
-```Bash
+```bash
 poetry run uvicorn app.main:app --reload
 ```
+
 Option B: Via Docker Compose (Recommended)
 To run the application along with PostgreSQL, Redis, and Celery workers:
-```Bash
+```bash
 docker-compose up --build -d
 ```
-🧪 Testing & Code Quality
-To run unit and integration tests using Pytest:
 
-```Bash
+## 🧪 Testing & Code Quality
+To run unit and integration tests using Pytest:
+```bash
 poetry run pytest
 ```
+
 To check code style compliance (Flake8):
-```Bash
+```bash
 poetry run flake8
 ```
-📄 API Documentation
+
+## 📄 API Documentation
 Access to the interactive Swagger UI and ReDoc documentation is protected via HTTP Basic Authentication.
-Use the following credentials to log in:
-
-Username: admin
-
-Password: admin
+Use the credentials configured in your environment variables (SWAGGER_USER and SWAGGER_PASSWORD) to log in.
 
 Documentation endpoints:
 
