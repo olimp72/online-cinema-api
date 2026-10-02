@@ -9,15 +9,20 @@ from app.api.cart import router as cart_router
 from app.api.orders import router as orders_router
 from app.api.payments import router as payments_router
 
+SWAGGER_USER = os.getenv("SWAGGER_USER")
+SWAGGER_PASSWORD = os.getenv("SWAGGER_PASSWORD")
+
+if not SWAGGER_USER or not SWAGGER_PASSWORD:
+    raise RuntimeError(
+        "CRITICAL SECURITY ERROR: SWAGGER_USER and SWAGGER_PASSWORD environment variables are strictly required."
+    )
+
 security = HTTPBasic()
 
 
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
-    expected_user = os.getenv("SWAGGER_USER", "admin")
-    expected_password = os.getenv("SWAGGER_PASSWORD", "admin")
-
-    correct_username = secrets.compare_digest(credentials.username, expected_user)
-    correct_password = secrets.compare_digest(credentials.password, expected_password)
+    correct_username = secrets.compare_digest(credentials.username, SWAGGER_USER)
+    correct_password = secrets.compare_digest(credentials.password, SWAGGER_PASSWORD)
 
     if not (correct_username and correct_password):
         raise HTTPException(

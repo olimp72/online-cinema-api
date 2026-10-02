@@ -5,8 +5,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 from sqlalchemy import text
-from app.main import app
-from app.db.database import get_db, Base
+
+os.environ["SWAGGER_USER"] = "test_admin"
+os.environ["SWAGGER_PASSWORD"] = "test_password"
+
+from app.main import app  # noqa: E402
+from app.db.database import get_db, Base  # noqa: E402
 
 TEST_DATABASE_URL = os.getenv(
     "DATABASE_URL",
