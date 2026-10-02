@@ -86,14 +86,12 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         if session.get('payment_status') != 'paid':
             raise HTTPException(status_code=400, detail="Payment not completed")
 
-        if session.get('currency', '').lower() != 'usd':
-            raise HTTPException(status_code=400, detail="Invalid currency")
-
         metadata = session.get('metadata', {})
-        if not metadata or 'order_id' not in metadata:
-            raise HTTPException(status_code=400, detail="Missing order_id in metadata")
+        if not metadata or 'order_id' not in metadata or 'user_id' not in metadata:
+            raise HTTPException(status_code=400, detail="Missing order_id or user_id in metadata")
 
         order_id = int(metadata['order_id'])
+        user_id = int(metadata['user_id'])
 
         query = select(Order).where(Order.id == order_id)
         result = await db.execute(query)
@@ -102,8 +100,26 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
 
+        if order.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Order ownership mismatch")
+
+        payment_intent_id = session.get('payment_intent')
+        if not payment_intent_id:
+            raise HTTPException(status_code=400, detail="Missing payment intent")
+
+        try:
+            payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        except stripe.error.StripeError:
+            raise HTTPException(status_code=400, detail="Error retrieving payment intent")
+
+        if payment_intent.status != 'succeeded':
+            raise HTTPException(status_code=400, detail="Payment intent not succeeded")
+
+        if payment_intent.currency.lower() != 'usd':
+            raise HTTPException(status_code=400, detail="Invalid currency")
+
         expected_amount = int(order.total_amount * 100)
-        if session.get('amount_total') != expected_amount:
+        if payment_intent.amount != expected_amount:
             raise HTTPException(status_code=400, detail="Payment amount mismatch")
 
         order.status = OrderStatusEnum.PAID
