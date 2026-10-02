@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.db.database import get_db
 from app.models.cart import Cart, CartItem
 from app.models.user import User
@@ -16,25 +17,16 @@ router = APIRouter()
 
 @router.get("/", response_model=CartResponse)
 async def get_cart(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    insert_stmt = pg_insert(Cart).values(user_id=current_user.id).on_conflict_do_nothing()
+    await db.execute(insert_stmt)
+    await db.commit()
+
     query = select(Cart).options(
         selectinload(Cart.items).selectinload(CartItem.movie)
     ).where(Cart.user_id == current_user.id)
 
     result = await db.execute(query)
-    cart = result.scalars().first()
-
-    if not cart:
-        cart = Cart(user_id=current_user.id)
-        db.add(cart)
-        try:
-            await db.commit()
-        except IntegrityError:
-            await db.rollback()
-
-        result = await db.execute(query)
-        cart = result.scalars().first()
-
-    return cart
+    return result.scalars().first()
 
 
 @router.post("/items", status_code=status.HTTP_201_CREATED)
@@ -54,19 +46,12 @@ async def add_to_cart(item_in: CartItemCreate, current_user: User = Depends(get_
     if purchased_result.scalars().first():
         raise HTTPException(status_code=400, detail="Movie already purchased")
 
+    insert_stmt = pg_insert(Cart).values(user_id=current_user.id).on_conflict_do_nothing()
+    await db.execute(insert_stmt)
+
     query = select(Cart).where(Cart.user_id == current_user.id)
     result = await db.execute(query)
     cart = result.scalars().first()
-
-    if not cart:
-        cart = Cart(user_id=current_user.id)
-        db.add(cart)
-        try:
-            await db.flush()
-        except IntegrityError:
-            await db.rollback()
-            result = await db.execute(query)
-            cart = result.scalars().first()
 
     new_item = CartItem(cart_id=cart.id, movie_id=item_in.movie_id)
     db.add(new_item)
@@ -75,6 +60,7 @@ async def add_to_cart(item_in: CartItemCreate, current_user: User = Depends(get_
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="Movie already in cart")
+
     return {"message": "Item added to cart"}
 
 
