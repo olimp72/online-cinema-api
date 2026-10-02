@@ -105,5 +105,3 @@ Use the credentials configured in your environment variables (SWAGGER_USER and S
 Documentation endpoints:
 
 Swagger UI: http://127.0.0.1:8000/docs
-
-ReDoc: http://127.0.0.1:8000/redoc
